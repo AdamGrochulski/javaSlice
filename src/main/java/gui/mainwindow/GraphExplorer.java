@@ -1,7 +1,9 @@
 package gui.mainwindow;
 
+import graph.Graph;
 import gui.menuwindows.SaveWindow;
 import gui.buttons.RoundedButton;
+import parser.Importer;
 
 import javax.swing.*;
 import javax.swing.border.LineBorder;
@@ -10,6 +12,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.IOException;
 
 
 import static java.lang.System.exit;
@@ -94,10 +97,15 @@ public class GraphExplorer extends JFrame{
                     filePath = selectedFile.getAbsolutePath();
                     System.out.println(filePath);
 
-                    /**
-                     * Tu należy dodać logikę związaną z dodaniem grafu do gui
-                     */
+                    //Następne trzy linijki odpowiadają za import grafu z pliku
+                    Importer importFile = new Importer(filePath);
+                    try {
+                        Graph.graph = importFile.start();
+                    } catch (IOException ex) {
+                        throw new RuntimeException(ex);
+                    }
 
+                    updateGraphLabels();
                 }
             }
         });
@@ -163,25 +171,25 @@ public class GraphExplorer extends JFrame{
 
         /*Panel: Liczba wierzchołków*/
         JPanel panel1LowerMargin = new JPanel(new BorderLayout());
-        numOfNodes = new JLabel("Liczba wierzchołków: 2137", SwingConstants.CENTER);
+        numOfNodes = new JLabel("Liczba wierzchołków: ", SwingConstants.CENTER);
         numOfNodes.setFont(myFont);
         panel1LowerMargin.add(numOfNodes, BorderLayout.CENTER);
 
         /*Panel: Liczba krawędzi*/
         JPanel panel2LowerMargin = new JPanel(new BorderLayout());
-        numOfEdges = new JLabel("Liczba krawędzi: 69", SwingConstants.CENTER);
+        numOfEdges = new JLabel("Liczba krawędzi: ", SwingConstants.CENTER);
         numOfEdges.setFont(myFont);
         panel2LowerMargin.add(numOfEdges, BorderLayout.CENTER);
 
         /*Panel: Rozmiar macierzy*/
         JPanel panel3LowerMargin = new JPanel(new BorderLayout());
-        matrixSize = new JLabel("Rozmiar macierzy: 666×666", SwingConstants.CENTER);
+        matrixSize = new JLabel("Rozmiar macierzy: ", SwingConstants.CENTER);
         matrixSize.setFont(myFont);
         panel3LowerMargin.add(matrixSize, BorderLayout.CENTER);
 
         /*Panel: Liczba grup*/
         JPanel panel4LowerMargin = new JPanel(new BorderLayout());
-        numOfGroups = new JLabel("Liczba grup: duzo", SwingConstants.CENTER);
+        numOfGroups = new JLabel("Liczba grup: ", SwingConstants.CENTER);
         numOfGroups.setFont(myFont);
         panel4LowerMargin.add(numOfGroups, BorderLayout.CENTER);
 
@@ -302,5 +310,12 @@ public class GraphExplorer extends JFrame{
         menuBar.setBorder(new LineBorder(themeMode.borderColor(), 1));
 
         this.repaint();
+    }
+
+    private void updateGraphLabels() {
+        numOfNodes.setText("Liczba wierzchołków: " + Graph.graph.getNumOfNodes());
+        numOfEdges.setText("Liczba krawędzi: " + Graph.graph.getNumOfEdges());
+        matrixSize.setText("Rozmiar macierzy: " + Graph.graph.getMatrixWidth() + "x" + Graph.graph.getMatrixHeight());
+        numOfGroups.setText("Liczba grup: " + Graph.graph.getNumOfGroups());
     }
 }

@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.Collections;
 
 public class Graph {
+    public static Graph graph;
+
     // Mapa przechowująca każdy wierzchołek i listę krawędzi wychodzących z tego wierzchołka
     private Map<Node, List<Edges>> graphLayout;
 
@@ -16,6 +18,13 @@ public class Graph {
 
     // Mapa pomocnicza do przechowywania wierzchołków w poszczególnych grupach (podgrafach)
     private Map<Integer, List<Node>> groupMap;
+
+    //Maksymalna liczba wierzchołków w wierszu/kolumnie
+    private int maxVerticesInLine = 0;
+
+    //Rozmiar macierzy
+    private int matrixWidth = 0;
+    private int matrixHeight = 0;
 
     // Konstruktor tworzący nowy, pusty graf!
     public Graph() {
@@ -76,6 +85,65 @@ public class Graph {
     // Funkcja zwracająca liczbę grup w grafie! (liczba podgrafów)
     public int getNumOfGroups() {
         return groupMap.size();
+    }
+
+    //Funkcja ustawiająca wartość maxVerticesInLine
+    public void setMaxVerticesInLine(int maxVerticesInLine) {
+        this.maxVerticesInLine = maxVerticesInLine;
+    }
+    //Funkcja ustawiająca szerokość macierzy
+    public void setMatrixWidth(int matrixWidth) {
+        this.matrixWidth = matrixWidth;
+    }
+
+    //Funkcja ustawiająca wysokość macierzy
+    public void setMatrixHeight(int matrixHeight) {
+        this.matrixHeight = matrixHeight;
+    }
+
+    //Funkcja pobierająca szerokość macierzy
+    public int getMatrixWidth(){
+        return matrixWidth;
+    }
+
+    //Funkcja pobierająca wysokość macierzy
+    public int getMatrixHeight(){
+        return matrixHeight;
+    }
+
+    //Funkcja pobierająca wartość maxVerticesInLine
+    public int getMaxVerticesInLine(){
+        return maxVerticesInLine;
+    }
+
+    //Funkcja deweloperska do wyświetlania grafu w wierszu poleceń
+    public void printGraphStructure() {
+        System.out.println("===== Struktura grafu =====");
+        System.out.println("Liczba wierzchołków: " + getNumOfNodes());
+        System.out.println("Liczba krawędzi: " + getNumOfEdges());
+        System.out.println("Liczba podgrafów: " + getNumOfGroups());
+        System.out.println();
+
+        for (Map.Entry<Integer, List<Node>> groupEntry : groupMap.entrySet()) {
+            int group = groupEntry.getKey();
+            List<Node> nodes = groupEntry.getValue();
+            System.out.println("-- Grupa " + group + " (" + nodes.size() + " wierzchołków) --");
+            for (Node node : nodes) {
+                System.out.print("Wierzchołek " + node.getNodeIndex() + " o współrzędnych (" + node.getX() + ", " + node.getY() + ") => ");
+                List<Edges> outgoingEdges = getEdges(node);
+                if (outgoingEdges.isEmpty()) {
+                    System.out.print("Nie ma krawędzi!");
+                } else {
+                    System.out.print("Krawędzie: ");
+                    for (Edges edge : outgoingEdges) {
+                        Node dest = edge.getDestination();
+                        System.out.print(dest.getNodeIndex() + " ");
+                    }
+                }
+                System.out.println();
+            }
+            System.out.println();
+        }
     }
 
 }
