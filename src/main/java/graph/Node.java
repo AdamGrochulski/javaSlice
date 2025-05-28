@@ -1,15 +1,17 @@
 package graph;
 
 public class Node {
-    private int nodeIndex;
-    private String label;
+    private final int nodeIndex;
     private int group;
+    private final int x;
+    private final int y;
 
-    // Konstruktor tworzący nowy wierzchołek z określonym indeksem, labelem (nazwa wierzchołka w implementacji graficznej) oraz grupą, do której należy (domyślnie -1)
-    Node(int nodeIndex, String label) {
+    // Konstruktor tworzący nowy wierzchołek z określonym indeksem oraz grupą, do której należy (domyślnie -1)
+    public Node(int nodeIndex, int x, int y) {
         this.nodeIndex = nodeIndex;
-        this.label = label;
         this.group = -1;
+        this.x = x;
+        this.y = y;
     }
 
     // Funckja zwracająca indeks wierzchołka
@@ -22,20 +24,18 @@ public class Node {
         return group;
     }
 
-    // Funkcja zwracająca nazwę wierzchołka!
-    public String getLabel() {
-        return label;
+    //Funkcja zwracająca współrzędną X wierzchołka
+    public int getX() {
+        return x;
+    }
+
+    // Funkcja zwracająca współrzędną Y wierzchołka
+    public int getY() {
+        return y;
     }
 
     // Funkcja, która pozwala przypisać wierzchołek do konkretnej grupy
     public void assignGroup(int group) {
         this.group = group;
     }
-
-    // Funkcja pozwalająca zmienić nazwę wierzchołka
-    public void changeLabel(String label) {
-        this.label = label;
-    }
-
-
 }

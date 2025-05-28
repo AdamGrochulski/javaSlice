@@ -1,3 +1,4 @@
+import graph.Graph;
 import gui.mainwindow.GraphExplorer;
 
 public class Main {
