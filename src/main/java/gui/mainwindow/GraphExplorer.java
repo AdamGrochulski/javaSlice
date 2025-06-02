@@ -1,5 +1,6 @@
 package gui.mainwindow;
 
+import algorithms.Dijkstra;
 import graph.Graph;
 import gui.menuwindows.SaveWindow;
 import gui.buttons.RoundedButton;
@@ -106,6 +107,7 @@ public class GraphExplorer extends JFrame{
                     }
 
                     updateGraphLabels();
+
                 }
             }
         });

@@ -63,6 +63,11 @@ public class Graph {
         return graphLayout.getOrDefault(node, Collections.emptyList());
     }
 
+    // Funkcja zwracająca listę wierzchołków!
+    public List<Node> getNodes() {
+        return new ArrayList<>(graphLayout.keySet());
+    }
+
     // Funkcja zwracająca wielkość podanej grupy!
     public int getGroupSize(int group) {
         return groupMap.getOrDefault(group, Collections.emptyList()).size();
