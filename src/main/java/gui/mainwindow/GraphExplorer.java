@@ -1,6 +1,7 @@
 package gui.mainwindow;
 
 import graph.Graph;
+import gui.menuwindows.PartitionWindow;
 import gui.menuwindows.SaveWindow;
 import gui.buttons.RoundedButton;
 import parser.Importer;
@@ -11,9 +12,10 @@ import javax.swing.border.MatteBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
-
 
 import static java.lang.System.exit;
 
@@ -89,9 +91,8 @@ public class GraphExplorer extends JFrame{
         /*Gdy klikniemy: "Wczytaj"*/
         load.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                JFileChooser fileChooser = new JFileChooser();
+                JFileChooser fileChooser = new JFileChooser("src/main/resources");
                 int result = fileChooser.showOpenDialog(null);
-
                 if (result == JFileChooser.APPROVE_OPTION) {
                     File selectedFile = fileChooser.getSelectedFile();
                     filePath = selectedFile.getAbsolutePath();
@@ -104,8 +105,8 @@ public class GraphExplorer extends JFrame{
                     } catch (IOException ex) {
                         throw new RuntimeException(ex);
                     }
-
                     updateGraphLabels();
+
                 }
             }
         });
@@ -205,11 +206,26 @@ public class GraphExplorer extends JFrame{
         leftMargin.setPreferredSize(new Dimension(150, 0));
 
         /*Panel: Dzielenie grafu*/
-        var partitionTheGraph = new RoundedButton("<html><center>Podziel graf</center></html>", 10);
+        RoundedButton partitionTheGraph = new RoundedButton("<html><center>Podziel graf</center></html>", 10);
         partitionTheGraph.setFont(myFont);
         partitionTheGraph.setPreferredSize(new Dimension(130, 40));
         partitionTheGraph.setMaximumSize(new Dimension(130, 40));
         partitionTheGraph.setAlignmentX(Component.CENTER_ALIGNMENT);
+        partitionTheGraph.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                if (Graph.graph == null || Graph.graph.getNumOfNodes() == 0) {
+                    JOptionPane.showMessageDialog(partitionTheGraph, "Proszę, wczytać graf!", "Błąd", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                PartitionWindow partitionWindow = new PartitionWindow(themeMode, "");
+                partitionWindow.addWindowListener(new WindowAdapter() {
+                    public void windowClosed(WindowEvent e) {
+                        updateGraphLabels();
+                    }
+                });
+            }
+        });
+
 
         /*Panel: Znajdowanie wierzchołka*/
         var locateNode = new RoundedButton("<html><center>Zlokalizuj<br>wierzchołek</center></html>", 10);

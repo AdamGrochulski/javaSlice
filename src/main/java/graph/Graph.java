@@ -63,6 +63,11 @@ public class Graph {
         return graphLayout.getOrDefault(node, Collections.emptyList());
     }
 
+    // Funkcja zwracająca listę wierzchołków!
+    public List<Node> getNodes() {
+        return new ArrayList<>(graphLayout.keySet());
+    }
+
     // Funkcja zwracająca wielkość podanej grupy!
     public int getGroupSize(int group) {
         return groupMap.getOrDefault(group, Collections.emptyList()).size();
@@ -114,6 +119,18 @@ public class Graph {
     //Funkcja pobierająca wartość maxVerticesInLine
     public int getMaxVerticesInLine(){
         return maxVerticesInLine;
+    }
+
+    //Funkcja, która aktualizuje grupy wierzchołków
+    public void updateGroupMap() {
+        groupMap.clear(); // Resetujemy dotychczasowe grupy
+        for (Node node : getNodes()) {
+            int group = node.getGroup();
+            if (group != -1) {  // Ignorujemy wierzchołki, które nie zostały "przemielone"
+                groupMap.putIfAbsent(group, new ArrayList<>());
+                groupMap.get(group).add(node);
+            }
+        }
     }
 
     //Funkcja deweloperska do wyświetlania grafu w wierszu poleceń
