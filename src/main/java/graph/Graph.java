@@ -121,6 +121,18 @@ public class Graph {
         return maxVerticesInLine;
     }
 
+    //Funkcja, która aktualizuje grupy wierzchołków
+    public void updateGroupMap() {
+        groupMap.clear(); // Resetujemy dotychczasowe grupy
+        for (Node node : getNodes()) {
+            int group = node.getGroup();
+            if (group != -1) {  // Ignorujemy wierzchołki, które nie zostały "przemielone"
+                groupMap.putIfAbsent(group, new ArrayList<>());
+                groupMap.get(group).add(node);
+            }
+        }
+    }
+
     //Funkcja deweloperska do wyświetlania grafu w wierszu poleceń
     public void printGraphStructure() {
         System.out.println("===== Struktura grafu =====");

@@ -41,11 +41,6 @@ public class Node {
         return dijkstraCheck;
     }
 
-    //Funkcja pomocnicza do algorytmu Dijkstry (zaznacza, który wierzchołek został przeanalizowany przez algorytm)
-    public void switchDijkstraCheck(){
-        dijkstraCheck = !dijkstraCheck;
-    }
-
     // Funkcja, która pozwala przypisać wierzchołek do konkretnej grupy
     public void assignGroup(int group) {
         this.group = group;
