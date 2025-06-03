@@ -10,10 +10,7 @@ import javax.swing.*;
 import javax.swing.border.LineBorder;
 import javax.swing.border.MatteBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
 
@@ -102,12 +99,26 @@ public class GraphExplorer extends JFrame{
                     Importer importFile = new Importer(filePath);
                     try {
                         Graph.graph = importFile.start();
+
+                        graphWindow.removeAll();
+
+                        // 2. Tworzymy nową instancję GraphPanel z aktualnym grafem
+                        GraphPanel graphPanel = new GraphPanel(Graph.graph);
+
+                        // 3. Dodajemy go do naszego okna (w odpowiednim layoucie)
+                        graphWindow.setLayout(new BorderLayout());
+                        graphWindow.add(graphPanel, BorderLayout.CENTER);
+
+                        // 4. Wymuszamy aktualizację layoutu i odrysowanie panelu
+                        graphWindow.revalidate();
+                        graphWindow.repaint();
+
                     } catch (IOException ex) {
                         throw new RuntimeException(ex);
                     }
-                    updateGraphLabels();
 
                 }
+                updateGraphLabels();
             }
         });
 
@@ -270,11 +281,8 @@ public class GraphExplorer extends JFrame{
 
         /*Okno z grafem*/
         graphWindow = new JPanel();
-
-        /**
-         * Tu należy dodać logikę z oknem grafu
-         */
-
+        graphWindow.setFocusable(true);
+        graphWindow.requestFocusInWindow();
 
         /*Dodanie marginesów do głównego panelu main*/
         main.add(lowerMargin, BorderLayout.SOUTH);
@@ -334,4 +342,6 @@ public class GraphExplorer extends JFrame{
         matrixSize.setText("Rozmiar macierzy: " + Graph.graph.getMatrixWidth() + "x" + Graph.graph.getMatrixHeight());
         numOfGroups.setText("Liczba grup: " + Graph.graph.getNumOfGroups());
     }
+
+
 }
