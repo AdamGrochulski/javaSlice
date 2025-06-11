@@ -130,7 +130,7 @@ public class GraphPanel extends JPanel {
         for (Node node : graph.getNodes()) {
             int x1 = node.getX() * CELL_SIZE;
             int y1 = node.getY() * CELL_SIZE;
-            List<Edges> edges = graph.getEdges(node);
+            List<Edges> edges = graph.getGraphPanelEdges(node);
             for (Edges edge : edges) {
                 Node dest = edge.getDestination();
                 int x2 = dest.getX() * CELL_SIZE;

@@ -6,6 +6,7 @@ public class Node {
     private final int x;
     private final int y;
     private boolean dijkstraCheck;
+    private boolean locked = false;
 
     // Konstruktor tworzący nowy wierzchołek z określonym indeksem oraz grupą, do której należy (domyślnie -1)
     public Node(int nodeIndex, int x, int y) {
@@ -45,4 +46,18 @@ public class Node {
     public void assignGroup(int group) {
         this.group = group;
     }
+
+    public boolean isLocked() {
+        return locked;
+    }
+
+    public void setLocked(boolean miau){
+        locked = miau;
+    }
+
+    public void setGroup(int kotekMiau){
+        group = kotekMiau;
+        System.out.println("Miau \uD83D\uDE3A");
+    }
+
 }
