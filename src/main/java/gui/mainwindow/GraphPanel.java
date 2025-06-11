@@ -26,6 +26,9 @@ public class GraphPanel extends JPanel {
 
     // Mapa przechowująca kolory dla poszczególnych grup
     private Map<Integer, Color> groupColors = new HashMap<>();
+
+    private Integer filteredGroup = null;
+
     // Stała złotego współczynnika conjugate, która pomaga w równomiernym rozłożeniu kolorów
     private static final float GOLDEN_RATIO_CONJUGATE = 0.618033988749895f;
 
@@ -107,14 +110,17 @@ public class GraphPanel extends JPanel {
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
 
-        // Ustawiamy transformację: przesunięcie (offset) i skalowanie
+        // Ustawienia wygładzania, transformacji itp.
+        if (ThemeConfig.getDisplayMode().equals("Smooth")) {
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        }
         AffineTransform transform = new AffineTransform();
         transform.translate(offset.x, offset.y);
         transform.scale(scale, scale);
         g2d.setTransform(transform);
 
-        // Zmiana koloru tła siatki - jeśli chcesz aby była dopasowana do motywu
-        // (opcjonalnie możesz zostawić kontrastową siatkę)
+        // Rysowanie siatki
         int matrixWidth = graph.getMatrixWidth();
         int matrixHeight = graph.getMatrixHeight();
         g2d.setColor(theme.meshColor());
@@ -125,11 +131,20 @@ public class GraphPanel extends JPanel {
             g2d.drawLine(0, j * CELL_SIZE, matrixWidth * CELL_SIZE, j * CELL_SIZE);
         }
 
-        // Krawędzie – wykorzystaj kolor pasujący do motywu (np. foreground albo border)
+        // Zachowujemy oryginalną kompozycję
+        Composite originalComposite = g2d.getComposite();
+
+        // Rysowanie krawędzi
         g2d.setColor(theme.edgeColor());
         for (Node node : graph.getNodes()) {
             int x1 = node.getX() * CELL_SIZE;
             int y1 = node.getY() * CELL_SIZE;
+            // Jeśli filtr jest aktywny i ten wierzchołek nie należy do wybranej grupy, ustawiamy przezroczystość
+            float edgeAlpha = 1.0f;
+            if (filteredGroup != null && node.getGroup() != filteredGroup) {
+                edgeAlpha = 0.1f;
+            }
+            g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, edgeAlpha));
             List<Edges> edges = graph.getGraphPanelEdges(node);
             for (Edges edge : edges) {
                 Node dest = edge.getDestination();
@@ -137,36 +152,43 @@ public class GraphPanel extends JPanel {
                 int y2 = dest.getY() * CELL_SIZE;
                 g2d.drawLine(x1, y1, x2, y2);
             }
+            // Przywracamy kompozycję
+            g2d.setComposite(originalComposite);
         }
 
-        // Wierzchołki – nadal wykorzystujemy dynamiczne przypisanie kolorów,
-        // możesz ewentualnie zmodyfikować tę logikę korzystając z kolorów motywu lub pozostawić je zgodnie z grupami.
+        // Rysowanie wierzchołków
         for (Node node : graph.getNodes()) {
             int nodeX = node.getX() * CELL_SIZE;
             int nodeY = node.getY() * CELL_SIZE;
             int radius = 15;
+            // Określamy przezroczystość dla danego wierzchołka (i jego tekstu)
+            float nodeAlpha = 1.0f;
+            if (filteredGroup != null && node.getGroup() != filteredGroup) {
+                nodeAlpha = 0.1f;
+            }
+            g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, nodeAlpha));
+
+            // Rysowanie wypełnienia wierzchołka
             if (showGroups) {
                 g2d.setColor(getColorForGroup(node.getGroup()));
             } else {
-                g2d.setColor(theme.buttonColor()); // lub inny kolor z motywu
+                g2d.setColor(theme.buttonColor());
             }
             g2d.fillOval(nodeX - radius, nodeY - radius, radius * 2, radius * 2);
+
+            // Rysowanie obwódki wierzchołka
             g2d.setColor(theme.foregroundColor());
             g2d.drawOval(nodeX - radius, nodeY - radius, radius * 2, radius * 2);
 
-            // Pobranie indeksu wierzchołka jako tekst i przygotowanie do rysowania
+            // Rysowanie indeksu wierzchołka
             String nodeIndexStr = String.valueOf(node.getNodeIndex());
-
-            // Zapamiętanie aktualnej czcionki
             Font originalFont = new Font("San Francisco", Font.BOLD, 12);
             Font fontToUse = originalFont;
+            g2d.setFont(fontToUse);
             FontMetrics metrics = g2d.getFontMetrics(fontToUse);
             int textWidth = metrics.stringWidth(nodeIndexStr);
-
-            // Średnica kółka
             int availableWidth = radius * 2;
             if (textWidth > availableWidth) {
-                // Obliczenie współczynnika skalowania: chcemy żeby tekst mieścił się w kółku z marginesem
                 float factor = (float) availableWidth * 0.9f / textWidth;
                 float newFontSize = originalFont.getSize2D() * factor;
                 fontToUse = originalFont.deriveFont(newFontSize);
@@ -174,28 +196,20 @@ public class GraphPanel extends JPanel {
                 metrics = g2d.getFontMetrics(fontToUse);
                 textWidth = metrics.stringWidth(nodeIndexStr);
             }
-
-            // Wyliczenie pozycji, żeby tekst był wyśrodkowany w kółku
             int textX = nodeX - textWidth / 2;
-            int textY = nodeY + metrics.getAscent() / 2 - 2; // niewielka korekta pionowa
-
-            // Ustawienie koloru tekstu – zazwyczaj kontrastującego, tutaj jako przykład biały
+            int textY = nodeY + metrics.getAscent() / 2 - 2;
             g2d.setColor(theme.nodeIndexColor());
             g2d.drawString(nodeIndexStr, textX, textY);
 
-            // Przywrócenie oryginalnej czcionki
-            g2d.setFont(originalFont);
-
-            // Jeśli wierzchołek jest podświetlony, narysuj dodatkową czerwoną obwódkę
+            // Rysowanie dodatkowego podświetlenia, jeśli dotyczy
             if (highlightedNodeIndex != null && node.getNodeIndex() == highlightedNodeIndex) {
                 Stroke originalStroke = g2d.getStroke();
                 g2d.setColor(Color.RED);
-                // Ustawiamy grubszą linię np. o grubości 3 (możesz eksperymentować)
                 g2d.setStroke(new BasicStroke(3));
-                // Rysujemy obwódkę, lekko powiększając o margines (np. 2 piksele)
                 g2d.drawOval(nodeX - radius - 2, nodeY - radius - 2, (radius * 2) + 4, (radius * 2) + 4);
                 g2d.setStroke(originalStroke);
             }
+            g2d.setComposite(originalComposite);
         }
     }
 
@@ -253,6 +267,16 @@ public class GraphPanel extends JPanel {
         // Jeśli nie znaleziono wierzchołka, czyścimy podświetlenie (opcjonalnie)
         highlightedNodeIndex = null;
         JOptionPane.showMessageDialog(this, "Wierzchołek o podanym indeksie nie został znaleziony.");
+    }
+
+    public void setFilteredGroup(Integer group) {
+        this.filteredGroup = group;
+        repaint();
+    }
+
+    public void clearFilteredGroup() {
+        this.filteredGroup = null;
+        repaint();
     }
 
     public void resetView() {

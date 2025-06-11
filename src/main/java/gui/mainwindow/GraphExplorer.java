@@ -16,6 +16,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
+import java.util.Comparator;
 
 import static java.lang.System.exit;
 
@@ -73,8 +74,6 @@ public class GraphExplorer extends JFrame{
         save.setFont(myFont);
         JMenuItem load = new JMenuItem("Wczytaj");
         load.setFont(myFont);
-        JMenuItem delete = new JMenuItem("Usuń");
-        delete.setFont(myFont);
         JMenuItem theme = new JMenuItem("Zmień motyw");
         theme.setFont(myFont);
         JMenuItem exit = new JMenuItem("Wyjdź");
@@ -105,6 +104,8 @@ public class GraphExplorer extends JFrame{
                     try {
                         Graph.graph = importFile.start();
 
+                        Graph.graph.backupState();
+
                         graphWindow.removeAll();
 
                         // 2. Tworzymy nową instancję GraphPanel z aktualnym grafem
@@ -118,32 +119,16 @@ public class GraphExplorer extends JFrame{
                         graphWindow.revalidate();
                         graphWindow.repaint();
 
+                        updateGraphLabels();
+
                     } catch (IOException ex) {
                         throw new RuntimeException(ex);
                     }
 
                 }
-                updateGraphLabels();
+
             }
         });
-
-
-        /*Gdy klikniemy usuń*/
-        delete.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-
-                int response = JOptionPane.showConfirmDialog(null, "Czy na pewno chcesz usunąć graf?", "Potwierdzenie", JOptionPane.YES_NO_OPTION);
-
-                if (response == JOptionPane.YES_OPTION) {
-
-                    System.out.println("TAK");
-                    /**
-                     * Tu należy dodać logikę związaną z usuwaniem grafu
-                     */
-                }
-            }
-        });
-
 
         /*Gdy klikniemy: "Zmień motyw"*/
         theme.addActionListener(new ActionListener() {
@@ -167,7 +152,6 @@ public class GraphExplorer extends JFrame{
 
         optionsMenu.add(save);
         optionsMenu.add(load);
-        optionsMenu.add(delete);
         optionsMenu.add(theme);
         optionsMenu.add(exit);
 
@@ -233,17 +217,16 @@ public class GraphExplorer extends JFrame{
                     JOptionPane.showMessageDialog(partitionTheGraph, "Proszę, wczytać graf!", "Błąd", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
-                PartitionWindow partitionWindow = new PartitionWindow(themeMode, "");
+                // Uruchamiamy okno do podania liczby partycji, które zarządza wywołaniem algorytmu
+                PartitionWindow partitionWindow = new PartitionWindow(themeMode);
                 partitionWindow.addWindowListener(new WindowAdapter() {
+                    @Override
                     public void windowClosed(WindowEvent e) {
                         updateGraphLabels();
-                        //wywołanie algorytmu Kernighana-Lina
-                        Graph.graph.synchronizeGroupEdges(); // przydziela internalEdges i externalEdges
-                        KernighanLin kl = new KernighanLin();
-                        kl.runKernighanLin(Graph.graph, true);
-                        Graph.graph.switchSplit();
+                        graphPanel.updateGraphDisplay();
                     }
                 });
+
             }
         });
 
@@ -327,19 +310,116 @@ public class GraphExplorer extends JFrame{
             }
         });
 
-        /*Panel: Wyświetlanie grup innymi kolorami*/
-        var showGroups = new RoundedButton("<html><center>Wyświetl grupy</center></html>", 10);
+        /*Panel: Wyświetlanie podanej grupy*/
+        var showGroups = new RoundedButton("<html><center>Wyświetl grupę</center></html>", 10);
         showGroups.setFont(myFont);
         showGroups.setPreferredSize(new Dimension(130, 40));
         showGroups.setMaximumSize(new Dimension(130,40));
         showGroups.setAlignmentX(Component.CENTER_ALIGNMENT);
+        showGroups.addActionListener(e -> {
+            if (Graph.graph == null || Graph.graph.getNumOfNodes() == 0) {
+                JOptionPane.showMessageDialog(partitionTheGraph, "Proszę, wczytać graf!", "Błąd", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (Graph.graph.getNumOfGroups() == 1) {
+                JOptionPane.showMessageDialog(partitionTheGraph, "Proszę, podzielić graf!", "Błąd", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            String input = JOptionPane.showInputDialog(
+                    null,
+                    "Podaj grupę wierzchołków, którą chcesz zobaczyć (od 0 do " + (Graph.graph.getNumOfGroups()-1) + "):",
+                    "Wyświetl grupę",
+                    JOptionPane.QUESTION_MESSAGE
+            );
+            if (input != null && !input.isEmpty()) {
+                try {
+                    int group = Integer.parseInt(input);
+                    // Sprawdzamy, czy grupa mieści się w dozwolonym zakresie
+                    if (group < 0 || group >= Graph.graph.getNumOfGroups()) {
+                        JOptionPane.showMessageDialog(
+                                null,
+                                "Podana grupa musi być pomiędzy 0 a " + (Graph.graph.getNumOfGroups()-1) + ".",
+                                "Błąd",
+                                JOptionPane.ERROR_MESSAGE
+                        );
+                    } else {
+                        // Pobranie szczegółowych informacji o wybranej grupie.
+                        int groupSize = Graph.graph.getGroupSize(group);
 
-        /*Pokaż ilość wierzchołków w danej grupie*/
-        var groupSize = new RoundedButton("<html><center>Wyświetl rozmiar grupy</center></html>", 10);
-        groupSize.setFont(myFont);
-        groupSize.setPreferredSize(new Dimension(130, 40));
-        groupSize.setMaximumSize(new Dimension(130,40));
-        groupSize.setAlignmentX(Component.CENTER_ALIGNMENT);
+                        // Budujemy komunikat z informacją o grupie.
+                        StringBuilder message = new StringBuilder();
+                        message.append("Grupa " + group + " zawiera " + groupSize + " wierzchołków.\n");
+                        message.append("Wierzchołki:\n");
+
+                        Graph.graph.getGroupNodes(group).sort(Comparator.comparingInt(Node::getNodeIndex));
+                        for (Node node : Graph.graph.getGroupNodes(group)) {
+                            // Możesz modyfikować, co chcesz wypisać – tutaj wypisujemy indeks wierzchołka.
+                            message.append(" - " + node.getNodeIndex() + "\n");
+                        }
+
+                        // Ustawiamy filtr dla danej grupy w GraphPanel
+                        graphPanel.setFilteredGroup(group);
+
+                        // Utworzenie pola tekstowego z komunikatem
+                        JTextArea textArea = new JTextArea(message.toString());
+                        textArea.setFont(myFont);
+                        textArea.setEditable(false);
+                        textArea.setLineWrap(true);
+                        textArea.setWrapStyleWord(true);
+
+                        // Opakowanie pola tekstowego w JScrollPane
+                        JScrollPane scrollPane = new JScrollPane(textArea);
+                        // Ustawienie preferowanych wymiarów
+                        scrollPane.setPreferredSize(new Dimension(300, 150));
+                        // Zapewnienie, że pasek przewijania pojawi się zawsze lub gdy będzie potrzeba
+                        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+
+                        // Wyświetlenie okienka dialogowego z zawartością scrollPane
+                        JOptionPane.showMessageDialog(
+                                null,
+                                scrollPane,
+                                "Szczegóły grupy",
+                                JOptionPane.INFORMATION_MESSAGE
+                        );
+
+                    }
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(
+                            null,
+                            "Niepoprawna wartość! Podaj liczbę całkowitą.",
+                            "Błąd",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                }
+            } else {
+                // Jeżeli pole jest puste, można zresetować filtr – opcjonalnie.
+                graphPanel.clearFilteredGroup();
+            }
+        });
+
+        /*Przełączanie*/
+        RoundedButton displayMode = new RoundedButton("<html><center>Tryb<br>Performance</center></html>", 10);
+        displayMode.setFont(myFont);
+        displayMode.setPreferredSize(new Dimension(130, 40));
+        displayMode.setMaximumSize(new Dimension(130, 40));
+        displayMode.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // Dodaj ActionListener do przycisku, który przełącza pomiędzy trybami
+        displayMode.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                ThemeConfig.switchDisplayMode();
+                if (ThemeConfig.getDisplayMode().equals("Performance")) {
+                    displayMode.setText("<html><center>Tryb<br>Performance</center></html>");
+                } else {
+                    displayMode.setText("<html><center>Tryb<br>Smooth</center></html>");
+                }
+                if (Graph.graph == null || Graph.graph.getNumOfNodes() == 0) {
+                    return;
+                }
+                graphPanel.updateGraphDisplay();
+            }
+        });
 
         /*Panel: Resetowanie widoku grafu*/
         var reset = new RoundedButton("<html><center>Resetuj widok<br>grafu</center></html>", 10);
@@ -350,10 +430,33 @@ public class GraphExplorer extends JFrame{
         reset.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                if (Graph.graph == null || Graph.graph.getNumOfNodes() == 0) {
+                    JOptionPane.showMessageDialog(partitionTheGraph, "Proszę, wczytać graf!", "Błąd", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
                 graphPanel.resetView();
             }
         });
 
+        /*Resetowanie grafu*/
+        var hardReset = new RoundedButton("<html><center>Resetuj graf</center></html>", 10);
+        hardReset.setFont(myFont);
+        hardReset.setPreferredSize(new Dimension(130, 40));
+        hardReset.setMaximumSize(new Dimension(130,40));
+        hardReset.setAlignmentX(Component.CENTER_ALIGNMENT);
+        hardReset.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (Graph.graph == null || Graph.graph.getNumOfNodes() == 0) {
+                    JOptionPane.showMessageDialog(partitionTheGraph, "Proszę, wczytać graf!", "Błąd", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                Graph.graph.restoreState();
+                Graph.graph.backupState();
+                graphPanel.updateGraphDisplay();
+                updateGraphLabels();
+            }
+        });
 
         leftMargin.add(Box.createVerticalStrut(10));
         leftMargin.add(partitionTheGraph);
@@ -362,10 +465,11 @@ public class GraphExplorer extends JFrame{
         leftMargin.add(Box.createVerticalStrut(10));
         leftMargin.add(showGroups);
         leftMargin.add(Box.createVerticalStrut(10));
-        leftMargin.add(groupSize);
+        leftMargin.add(displayMode);
         leftMargin.add(Box.createVerticalStrut(10));
         leftMargin.add(reset);
-
+        leftMargin.add(Box.createVerticalStrut(10));
+        leftMargin.add(hardReset);
 
         /*Okno z grafem*/
         graphWindow = new JPanel();

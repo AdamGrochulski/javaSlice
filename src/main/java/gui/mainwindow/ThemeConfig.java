@@ -5,7 +5,7 @@ import graph.Node;
 import java.awt.Color;
 
 public class ThemeConfig {
-
+    private static String displayMode = "Performance";
     public enum ThemeMode {
         LIGHT_MODE(
                 new Color(0xEAEAEA), // background
@@ -98,5 +98,17 @@ public class ThemeConfig {
     public Color edgeColor(){ return currentMode.getEdge(); }
 
     public Color nodeIndexColor(){ return currentMode.getNodeIndex(); }
+
+    public static void switchDisplayMode(){
+        if(displayMode.equals("Performance"))
+            displayMode = "Smooth";
+        else{
+            displayMode = "Performance";
+        }
+    }
+
+    public static String getDisplayMode(){
+        return displayMode;
+    }
 
 }

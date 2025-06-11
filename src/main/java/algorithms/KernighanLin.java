@@ -400,6 +400,10 @@ public class KernighanLin{
             }
             graphOrigin.updateGroupMap();
             iterations++;
+            if(!graphOrigin.getKLChecker()){
+                System.out.println("Przerwanie dzielenia!");
+                return;
+            }
         }
     }
 
