@@ -1,5 +1,6 @@
 package gui.mainwindow;
 
+import algorithms.KernighanLin;
 import graph.Edges;
 import graph.Graph;
 import graph.Node;
@@ -236,6 +237,11 @@ public class GraphExplorer extends JFrame{
                 partitionWindow.addWindowListener(new WindowAdapter() {
                     public void windowClosed(WindowEvent e) {
                         updateGraphLabels();
+                        //wywołanie algorytmu Kernighana-Lina
+                        Graph.graph.synchronizeGroupEdges(); // przydziela internalEdges i externalEdges
+                        KernighanLin kl = new KernighanLin();
+                        kl.runKernighanLin(Graph.graph, true);
+                        Graph.graph.switchSplit();
                     }
                 });
             }
@@ -428,6 +434,5 @@ public class GraphExplorer extends JFrame{
         matrixSize.setText("Rozmiar macierzy: " + Graph.graph.getMatrixWidth() + "x" + Graph.graph.getMatrixHeight());
         numOfGroups.setText("Liczba grup: " + Graph.graph.getNumOfGroups());
     }
-
 
 }
