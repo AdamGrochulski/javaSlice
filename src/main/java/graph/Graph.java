@@ -26,6 +26,7 @@ public class Graph {
     //Maksymalna liczba wierzchołków w wierszu/kolumnie
     private int maxVerticesInLine = 0;
     private boolean isSplit = false;
+    public boolean kLChecker = true;
 
     //Rozmiar macierzy
     private int matrixWidth = 0;
@@ -88,8 +89,14 @@ public class Graph {
     // Funkcja zwracająca liczbę krawędzi w grafie!
     public int getNumOfEdges() {
         int numOfEdges = 0;
-        for(List<Edges> edgesList : graphLayout.values()) {
-            numOfEdges += edgesList.size();
+        if(!isSplit) {
+            for (List<Edges> edgesList : graphLayout.values()) {
+                numOfEdges += edgesList.size();
+            }
+        } else{
+            for (List<Edges> edgesList : internalEdges.values()) {
+                numOfEdges += edgesList.size();
+            }
         }
         return numOfEdges;
     }
@@ -123,11 +130,6 @@ public class Graph {
         return matrixHeight;
     }
 
-    //Funkcja pobierająca wartość maxVerticesInLine
-    public int getMaxVerticesInLine(){
-        return maxVerticesInLine;
-    }
-
     //Funkcja, która aktualizuje grupy wierzchołków
     public void updateGroupMap() {
         groupMap.clear(); // Resetujemy dotychczasowe grupy
@@ -140,42 +142,8 @@ public class Graph {
         }
     }
 
-    //Funkcja deweloperska do wyświetlania grafu w wierszu poleceń
-    public void printGraphStructure() {
-        System.out.println("===== Struktura grafu =====");
-        System.out.println("Liczba wierzchołków: " + getNumOfNodes());
-        System.out.println("Liczba krawędzi: " + getNumOfEdges());
-        System.out.println("Liczba podgrafów: " + getNumOfGroups());
-        System.out.println();
-
-        for (Map.Entry<Integer, List<Node>> groupEntry : groupMap.entrySet()) {
-            int group = groupEntry.getKey();
-            List<Node> nodes = groupEntry.getValue();
-            System.out.println("-- Grupa " + group + " (" + nodes.size() + " wierzchołków) --");
-            for (Node node : nodes) {
-                System.out.print("Wierzchołek " + node.getNodeIndex() + " o współrzędnych (" + node.getX() + ", " + node.getY() + ") => ");
-                List<Edges> outgoingEdges = getEdges(node);
-                if (outgoingEdges.isEmpty()) {
-                    System.out.print("Nie ma krawędzi!");
-                } else {
-                    System.out.print("Krawędzie: ");
-                    for (Edges edge : outgoingEdges) {
-                        Node dest = edge.getDestination();
-                        System.out.print(dest.getNodeIndex() + " ");
-                    }
-                }
-                System.out.println();
-            }
-            System.out.println();
-        }
-    }
-
-    public Map<Node, List<Edges>> getInternalEdges(){
-        return internalEdges;
-    }
-
-    public Map<Node, List<Edges> > getExternalEdges(){
-        return externalEdges;
+    public List<Node> getGroupNodes(int group) {
+        return graph.groupMap.get(group);
     }
 
     public Node getNodeByIndex(int index) {
@@ -189,8 +157,6 @@ public class Graph {
     public List<Edges> getInternalEdges(Node node){
         return graph.internalEdges.get(node);
     }
-
-
 
     //Funkcja ustawia odpowiednio externalEdges i internalEdges dla kazdego wierzchołka
     public void synchronizeGroupEdges(){
@@ -240,34 +206,6 @@ public class Graph {
         }
     }
 
-    // Wypisuje wszystkie krawędzie w grafie
-    public void printAllEdges(Graph graph) {
-        for (Node node : graph.getNodes()) {
-            System.out.println("Node " + node.getNodeIndex() + ":");
-            System.out.print("  Internal Edges: ");
-            List<Edges> internal = graph.getInternalEdges(node);
-            if (internal != null && !internal.isEmpty()) {
-                for (Edges edge : internal) {
-                    System.out.print("(" + edge.getOrigin().getNodeIndex() + "->" + edge.getDestination().getNodeIndex() + ") ");
-                }
-            } else {
-                System.out.print("None");
-            }
-            System.out.println();
-
-            System.out.print("  External Edges: ");
-            List<Edges> external = graph.getExternalEdges(node);
-            if (external != null && !external.isEmpty()) {
-                for (Edges edge : external) {
-                    System.out.print("(" + edge.getOrigin().getNodeIndex() + "->" + edge.getDestination().getNodeIndex() + ") ");
-                }
-            } else {
-                System.out.print("None");
-            }
-            System.out.println("\n");
-        }
-    }
-
     public void printExternalEdges(Node node) {
         List<Edges> edges = externalEdges.get(node);
         System.out.print("External edges for node " + node.getNodeIndex() + ": [");
@@ -312,6 +250,89 @@ public class Graph {
         }else {
             return graphLayout.getOrDefault(node, Collections.emptyList());
         }
+    }
+
+    public void setKLChecker(){
+        kLChecker = !kLChecker;
+    }
+
+    public boolean getKLChecker(){
+        return kLChecker;
+    }
+
+    //Sekcja backup Grafu
+    private Map<Integer, Integer> backupNodeGroups;
+    private Map<Integer, List<Node>> backupGroupMap;
+    private Map<Node, List<Edges>> backupInternalEdges;
+    private Map<Node, List<Edges>> backupExternalEdges;
+    private int backupMaxVerticesInLine;
+    private int backupMatrixWidth;
+    private int backupMatrixHeight;
+    private boolean backupIsSplit;
+
+    public void backupState() {
+        // Backup grup wierzchołków: zapisujemy wartość group dla każdego wierzchołka (używając jego indeksu)
+        backupNodeGroups = new HashMap<>();
+        for (Node node : getNodes()) {
+            backupNodeGroups.put(node.getNodeIndex(), node.getGroup());
+        }
+
+        // Backup groupMap
+        backupGroupMap = new HashMap<>();
+        for (Map.Entry<Integer, List<Node>> entry : groupMap.entrySet()) {
+            // Tworzymy nową listę, aby późniejsze modyfikacje nie wpływały na backup
+            backupGroupMap.put(entry.getKey(), new ArrayList<>(entry.getValue()));
+        }
+
+        // Backup internalEdges
+        backupInternalEdges = new HashMap<>();
+        for (Map.Entry<Node, List<Edges>> entry : internalEdges.entrySet()) {
+            backupInternalEdges.put(entry.getKey(), new ArrayList<>(entry.getValue()));
+        }
+
+        // Backup externalEdges
+        backupExternalEdges = new HashMap<>();
+        for (Map.Entry<Node, List<Edges>> entry : externalEdges.entrySet()) {
+            backupExternalEdges.put(entry.getKey(), new ArrayList<>(entry.getValue()));
+        }
+
+        // Backup pozostałych parametrów
+        backupMaxVerticesInLine = maxVerticesInLine;
+        backupMatrixWidth = matrixWidth;
+        backupMatrixHeight = matrixHeight;
+        backupIsSplit = isSplit;
+    }
+
+    public void restoreState() {
+        // Przywracamy grupę dla każdego wierzchołka
+        for (Node node : getNodes()) {
+            Integer originalGroup = backupNodeGroups.get(node.getNodeIndex());
+            if (originalGroup != null) {
+                node.assignGroup(originalGroup);
+            }
+        }
+
+        // Przywracamy groupMap
+        groupMap.clear();
+        groupMap.putAll(backupGroupMap);
+
+        // Przywracamy internalEdges
+        internalEdges.clear();
+        for (Map.Entry<Node, List<Edges>> entry : backupInternalEdges.entrySet()) {
+            internalEdges.put(entry.getKey(), new ArrayList<>(entry.getValue()));
+        }
+
+        // Przywracamy externalEdges
+        externalEdges.clear();
+        for (Map.Entry<Node, List<Edges>> entry : backupExternalEdges.entrySet()) {
+            externalEdges.put(entry.getKey(), new ArrayList<>(entry.getValue()));
+        }
+
+        // Przywracamy pozostałe pola
+        maxVerticesInLine = backupMaxVerticesInLine;
+        matrixWidth = backupMatrixWidth;
+        matrixHeight = backupMatrixHeight;
+        isSplit = backupIsSplit;
     }
 
 }

@@ -54,10 +54,4 @@ public class Node {
     public void setLocked(boolean miau){
         locked = miau;
     }
-
-    public void setGroup(int kotekMiau){
-        group = kotekMiau;
-        System.out.println("Miau \uD83D\uDE3A");
-    }
-
 }
