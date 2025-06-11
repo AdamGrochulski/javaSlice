@@ -1,6 +1,8 @@
 package gui.mainwindow;
 
+import graph.Edges;
 import graph.Graph;
+import graph.Node;
 import gui.menuwindows.PartitionWindow;
 import gui.menuwindows.SaveWindow;
 import gui.buttons.RoundedButton;
@@ -10,10 +12,7 @@ import javax.swing.*;
 import javax.swing.border.LineBorder;
 import javax.swing.border.MatteBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
 
@@ -37,6 +36,8 @@ public class GraphExplorer extends JFrame{
     private final JLabel numOfEdges;
     private final JLabel matrixSize;
     private final JLabel numOfGroups;
+
+    private GraphPanel graphPanel;
 
     /*Ustawianie motywu (dark/light)*/
     ThemeConfig darkMode = new ThemeConfig(ThemeConfig.ThemeMode.DARK_MODE);
@@ -102,12 +103,26 @@ public class GraphExplorer extends JFrame{
                     Importer importFile = new Importer(filePath);
                     try {
                         Graph.graph = importFile.start();
+
+                        graphWindow.removeAll();
+
+                        // 2. Tworzymy nową instancję GraphPanel z aktualnym grafem
+                        graphPanel = new GraphPanel(Graph.graph, themeMode);
+
+                        // 3. Dodajemy go do naszego okna (w odpowiednim layoucie)
+                        graphWindow.setLayout(new BorderLayout());
+                        graphWindow.add(graphPanel, BorderLayout.CENTER);
+
+                        // 4. Wymuszamy aktualizację layoutu i odrysowanie panelu
+                        graphWindow.revalidate();
+                        graphWindow.repaint();
+
                     } catch (IOException ex) {
                         throw new RuntimeException(ex);
                     }
-                    updateGraphLabels();
 
                 }
+                updateGraphLabels();
             }
         });
 
@@ -233,6 +248,78 @@ public class GraphExplorer extends JFrame{
         locateNode.setPreferredSize(new Dimension(130, 40));
         locateNode.setMaximumSize(new Dimension(130,40));
         locateNode.setAlignmentX(Component.CENTER_ALIGNMENT);
+        locateNode.addActionListener(e -> {
+            // Sprawdzamy, czy graf jest wczytany
+            if (Graph.graph == null || Graph.graph.getNumOfNodes() == 0) {
+                JOptionPane.showMessageDialog(partitionTheGraph,
+                        "Proszę, wczytać graf!",
+                        "Błąd",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Pobieramy indeks wierzchołka od użytkownika
+            String input = JOptionPane.showInputDialog(null, "Podaj indeks wierzchołka do zlokalizowania:");
+            if (input != null) {
+                try {
+                    int index = Integer.parseInt(input.trim());
+                    int maxNodes = Graph.graph.getNumOfNodes();
+                    if (index < 0 || index >= maxNodes) {
+                        JOptionPane.showMessageDialog(null,
+                                "Podaj wartość z zakresu 0 - " + (maxNodes - 1),
+                                "Błędny indeks",
+                                JOptionPane.ERROR_MESSAGE);
+                    } else {
+                        // Centrujemy widok na wskazanym wierzchołku
+                        graphPanel.centerOnNode(index);
+
+                        // Szukamy w grafie wierzchołek o danym indeksie
+                        Node targetNode = null;
+                        for (Node node : Graph.graph.getNodes()) {
+                            if (node.getNodeIndex() == index) {
+                                targetNode = node;
+                                break;
+                            }
+                        }
+
+                        if (targetNode != null) {
+                            // Budujemy ciąg tekstu z informacjami o wierzchołku
+                            StringBuilder details = new StringBuilder();
+                            details.append(" Indeks: ").append(targetNode.getNodeIndex()).append("\n");
+                            details.append(" Grupa: ").append(targetNode.getGroup()).append("\n");
+
+                            // Pobieramy krawędzie wychodzące
+                            java.util.List<Edges> edges = Graph.graph.getEdges(targetNode);
+                            details.append(" Liczba krawędzi: ").append(edges.size()).append("\n");
+                            details.append(" Lista krawędzi:\n");
+                            for (Edges edge : edges) {
+                                // Przykładowo wypisujemy: wierzchołek źródłowy -> wierzchołek docelowy
+                                details.append(" "+edge.getOrigin().getNodeIndex())
+                                        .append(" -> ")
+                                        .append(edge.getDestination().getNodeIndex())
+                                        .append("\n");
+                            }
+
+                            // Ustawiamy JTextArea oraz ScrollPane, aby okno mogło wyświetlić długą listę krawędzi
+                            JTextArea textArea = new JTextArea(details.toString());
+                            textArea.setEditable(false);
+                            textArea.setLineWrap(true);
+                            textArea.setWrapStyleWord(true);
+                            textArea.setFont(myFont);
+                            JScrollPane scrollPane = new JScrollPane(textArea);
+                            scrollPane.setPreferredSize(new Dimension(400, 300));
+
+                            JOptionPane.showMessageDialog(null, scrollPane, " Informacje o wierzchołku", JOptionPane.INFORMATION_MESSAGE);
+                        }
+                    }
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(null,
+                            "Wpisz poprawny numer!",
+                            "Błąd",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
 
         /*Panel: Wyświetlanie grup innymi kolorami*/
         var showGroups = new RoundedButton("<html><center>Wyświetl grupy</center></html>", 10);
@@ -254,6 +341,12 @@ public class GraphExplorer extends JFrame{
         reset.setPreferredSize(new Dimension(130, 40));
         reset.setMaximumSize(new Dimension(130,40));
         reset.setAlignmentX(Component.CENTER_ALIGNMENT);
+        reset.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                graphPanel.resetView();
+            }
+        });
 
 
         leftMargin.add(Box.createVerticalStrut(10));
@@ -270,11 +363,8 @@ public class GraphExplorer extends JFrame{
 
         /*Okno z grafem*/
         graphWindow = new JPanel();
-
-        /**
-         * Tu należy dodać logikę z oknem grafu
-         */
-
+        graphWindow.setFocusable(true);
+        graphWindow.requestFocusInWindow();
 
         /*Dodanie marginesów do głównego panelu main*/
         main.add(lowerMargin, BorderLayout.SOUTH);
@@ -325,6 +415,10 @@ public class GraphExplorer extends JFrame{
         lowerMargin.setBorder(new LineBorder(themeMode.borderColor(), 1));
         menuBar.setBorder(new LineBorder(themeMode.borderColor(), 1));
 
+        /*Zmienianie motywu rysowania grafu*/
+        if(graphPanel != null)
+            graphPanel.setTheme(themeMode);
+
         this.repaint();
     }
 
@@ -334,4 +428,6 @@ public class GraphExplorer extends JFrame{
         matrixSize.setText("Rozmiar macierzy: " + Graph.graph.getMatrixWidth() + "x" + Graph.graph.getMatrixHeight());
         numOfGroups.setText("Liczba grup: " + Graph.graph.getNumOfGroups());
     }
+
+
 }
