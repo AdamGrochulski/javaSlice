@@ -7,6 +7,7 @@ import gui.mainwindow.ThemeConfig;
 import javax.swing.*;
 import javax.swing.border.LineBorder;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.concurrent.CancellationException;
 
 public class PartitionWindow extends JFrame {
@@ -99,10 +100,33 @@ public class PartitionWindow extends JFrame {
             @Override
             protected Boolean doInBackground() throws Exception {
                 // Zapisujemy stan grafu – w przypadku anulowania będziemy mogli go przywrócić
+
+                // Pytamy użytkownika o margines
+                String marginStr = JOptionPane.showInputDialog(
+                        null,
+                        "Podaj margines:",
+                        "Margines",
+                        JOptionPane.QUESTION_MESSAGE
+                );
+                double aimmargin = 0.3; // domyślna wartość
+                if (marginStr != null && !marginStr.isBlank()) {
+                    try {
+                        aimmargin = Double.parseDouble(marginStr);
+                    } catch (NumberFormatException ex) {
+                        JOptionPane.showMessageDialog(
+                                null,
+                                "Podano niepoprawny margines, użyto domyślnej wartości 0.3.",
+                                "Błąd",
+                                JOptionPane.WARNING_MESSAGE
+                        );
+                    }
+                }
+
                 Graph.graph.backupState();
 
                 Dijkstra dijkstra = new Dijkstra(Graph.graph, partition);
                 dijkstra.partitionGraph();
+
 
                 // Przygotowujemy graf do działania algorytmu
                 Graph.graph.synchronizeGroupEdges();
@@ -110,6 +134,53 @@ public class PartitionWindow extends JFrame {
 
                 // Wywołujemy metodę z "czarnej skrzynki" (nie możemy jej modyfikować)
                 kl.runKernighanLin(Graph.graph, true);
+                Graph.graph.handleNodesWithEmptyInternalEdges();
+                Graph.graph.allInternalEdgesNonEmpty();
+                Graph.graph.printAllInternalAndExternalEdges();
+
+
+                ArrayList<Integer> cardinalityGroups = new ArrayList<>();
+                for(int i = 0; i < Graph.graph.getNumOfGroups(); i++){
+                    System.out.println("Group " + i + " size: " + Graph.graph.getGroupSize(i));
+                    cardinalityGroups.add(Graph.graph.getGroupSize(i));
+                }
+
+                int maxGroupSize = 1;
+                int minGroupSize = Integer.MAX_VALUE;
+                for (int size : cardinalityGroups) {
+                    if (size > maxGroupSize) maxGroupSize = size;
+                    if (size < minGroupSize) minGroupSize = size;
+                }
+                double margin = (double) maxGroupSize / (double) minGroupSize - 1 ;
+                if (margin > aimmargin) {
+                    SwingUtilities.invokeLater(() ->
+                            JOptionPane.showMessageDialog(null, "Margines jest niezgodny z wymaganiami: " + margin, "Informacja o marginesie", JOptionPane.INFORMATION_MESSAGE)
+                    );
+                }
+
+
+//                ArrayList<Integer> cardinalityGroups = new ArrayList<>();
+//                for(int i = 0; i < Graph.graph.getNumOfGroups(); i++){
+//                    System.out.println("Group " + i + " size: " + Graph.graph.getGroupSize(i));
+//                    cardinalityGroups.add(Graph.graph.getGroupSize(i));
+//                }
+//
+//                try {
+//                    Graph.graph.optimizeMargin(cardinalityGroups, 0.3);
+//                    Graph.graph.handleNodesWithEmptyInternalEdges();
+//                    for (int i = 0; i < Graph.graph.getNumOfGroups(); i++) {
+//                        System.out.println("Group " + i + " size: " + Graph.graph.getGroupSize(i));
+//                        if (isCancelled()) {
+//                            throw new CancellationException();
+//                        }
+//                    }
+//                    if (isCancelled()) {
+//                        throw new CancellationException();
+//                    }
+//                } catch (CancellationException ce) {
+//                    // Przerwano operację, przekazujemy wyjątek dalej
+//                    throw ce;
+//                }
 
                 return true;
             }

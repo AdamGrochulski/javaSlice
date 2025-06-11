@@ -1,11 +1,14 @@
 package gui.menuwindows;
 
+import graph.Graph;
 import gui.mainwindow.ThemeConfig;
 import gui.buttons.CustomRadioButtonIcon;
+import parser.SaveToTxt;
 
 import javax.swing.*;
 import javax.swing.border.LineBorder;
 import java.awt.*;
+import java.io.IOException;
 
 public class SaveWindow extends JFrame {
 
@@ -42,32 +45,32 @@ public class SaveWindow extends JFrame {
                 BorderFactory.createEmptyBorder(0, 3, 0, 0) // 10px odstępu po lewej
         ));
 
-        var csrrgButton = new JRadioButton(".csrrg");
-        var binButton = new JRadioButton(".bin   "); // nie usuwać tych spacji!
+        var csrrgButton = new JRadioButton(".txt");
+        //var binButton = new JRadioButton(".bin   "); // nie usuwać tych spacji!
 
         /*Tworzenie JRadioButtonów*/
         csrrgButton.setBackground(themeMode.leftMarginColor());
-        binButton.setBackground(themeMode.leftMarginColor());
+        //binButton.setBackground(themeMode.leftMarginColor());
         csrrgButton.setForeground(themeMode.foregroundColor());
-        binButton.setForeground(themeMode.foregroundColor());
+        //binButton.setForeground(themeMode.foregroundColor());
         csrrgButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        binButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        //binButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         csrrgButton.setFont(myFont);
-        binButton.setFont(myFont);
+        //binButton.setFont(myFont);
         csrrgButton.setFocusPainted(false);
-        binButton.setFocusPainted(false);
+        //binButton.setFocusPainted(false);
 
         csrrgButton.setIcon(new CustomRadioButtonIcon(10, Color.WHITE, themeMode.foregroundColor(), themeMode.backgroundColor()));
         csrrgButton.setSelectedIcon(new CustomRadioButtonIcon(10, themeMode.foregroundColor(), themeMode.foregroundColor(), themeMode.backgroundColor()));
         csrrgButton.setFocusPainted(false);
 
-        binButton.setIcon(new CustomRadioButtonIcon(10, Color.WHITE, themeMode.foregroundColor(), themeMode.backgroundColor()));
-        binButton.setSelectedIcon(new CustomRadioButtonIcon(10, themeMode.foregroundColor(), themeMode.foregroundColor(), themeMode.backgroundColor()));
-        binButton.setFocusPainted(false);
+//        binButton.setIcon(new CustomRadioButtonIcon(10, Color.WHITE, themeMode.foregroundColor(), themeMode.backgroundColor()));
+//        binButton.setSelectedIcon(new CustomRadioButtonIcon(10, themeMode.foregroundColor(), themeMode.foregroundColor(), themeMode.backgroundColor()));
+//        binButton.setFocusPainted(false);
 
         ButtonGroup group = new ButtonGroup();
         group.add(csrrgButton);
-        group.add(binButton);
+        //group.add(binButton);
 
         /*okButton - logika*/
         JButton okButton = new JButton("OK");
@@ -81,16 +84,20 @@ public class SaveWindow extends JFrame {
 
         okButton.addActionListener(e -> {
             String userFileName = textField.getText();
-            String extension = csrrgButton.isSelected() ? ".csrrg" : (binButton.isSelected() ? ".bin" : "");
+            String extension = ".txt";
             if (userFileName.isEmpty() || extension.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Podaj nazwę pliku i wybierz rozszerzenie!", "Błąd", JOptionPane.ERROR_MESSAGE);
             } else {
                 System.out.println("Zapisano jako: " + userFileName + extension);
+                String outputFile = "src/main/resources/outputTxt/";
 
-                /**
-                 * Tu należy dodać logikę związaną z zapisywaniem do pliku
-                 */
-
+                for(int i = 0; i < Graph.graph.getNumOfGroups(); i ++) {
+                    try {
+                        SaveToTxt.saveGroupMatrixAndInternalEdgesToTxt(Graph.graph, i, (outputFile + userFileName + "_group" + i + extension));
+                    } catch (IOException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                }
                 dispose(); // zamknij okno
             }
         });
@@ -101,7 +108,7 @@ public class SaveWindow extends JFrame {
         mainPanel.add(textField);
         mainPanel.add(Box.createVerticalStrut(10));
         mainPanel.add(csrrgButton);
-        mainPanel.add(binButton);
+        //mainPanel.add(binButton);
         mainPanel.add(Box.createVerticalStrut(10));
         mainPanel.add(okButton);
 
