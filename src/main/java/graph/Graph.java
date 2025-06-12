@@ -1,12 +1,6 @@
 package graph;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Collections;
-import java.util.Set;
-import java.util.HashSet;
+import java.util.*;
 
 public class Graph {
     public static Graph graph;
@@ -335,4 +329,156 @@ public class Graph {
         isSplit = backupIsSplit;
     }
 
+    public void handleNodesWithEmptyInternalEdges() {
+        List<Node> nodes = getNodes();
+        for (Node node : nodes) {
+            if (getInternalEdges(node) == null || getInternalEdges(node).isEmpty()) {
+                int bestFittingGroup = chooseGroupForOrphan(node);
+                moveTheNodeToTheGroup(node, bestFittingGroup);
+            }
+        }
+
+        updateGroupMap();
+        synchronizeGroupEdges();
+    }
+
+
+    public int chooseGroupForOrphan(Node node) {
+        // orphans <==> node without internalEdges
+        List<Edges> list = getExternalEdges(node);
+        HashMap<Integer, Integer> groupCardinalityMap = new HashMap<>(); // (Nr. grupy, moc grupy) - tylko dla external
+
+        for (Edges edge : list) {
+            int externalNodeGroup = edge.getDestination().getGroup();
+            groupCardinalityMap.putIfAbsent(externalNodeGroup, getGroupSize(externalNodeGroup));
+        }
+
+        int minVal = Integer.MAX_VALUE;
+        int minKey = -1;
+
+        for (Map.Entry<Integer, Integer> pair : groupCardinalityMap.entrySet()) {
+            if (pair.getValue() < minVal) {
+                minVal = pair.getValue();
+                minKey = pair.getKey();
+            }
+        }
+        return minKey;
+    }
+
+    public void moveTheNodeToTheGroup(Node node, int bestFittingGroup) {
+        List<Edges> list = getExternalEdges(node);
+
+        //Dla obecnego node'a
+        node.assignGroup(bestFittingGroup); // Zeby nie wyswietlic sie kotek :)
+
+        //Sprawdzamy, które to wierzchołki
+        List<Edges> edgesBestFittingGroup = new ArrayList<>() {
+        };
+        for (Edges edge : list) {
+            if (edge.getDestination().getGroup() == bestFittingGroup) {
+                edgesBestFittingGroup.add(edge);
+            }
+        }
+
+        List<Edges> externals = getExternalEdges(node);
+        List<Edges> internals = getInternalEdges(node);
+
+        for (Edges edge : edgesBestFittingGroup) {
+            internals.add(new Edges(node, edge.getDestination()));
+            externals.remove(new Edges(node, edge.getDestination()));
+        }
+
+        //Dla innych
+        for (Edges edge : edgesBestFittingGroup) {
+            Node nodeI = edge.getDestination();
+            List<Edges> otherExternalsList = graph.getExternalEdges(nodeI);
+            List<Edges> otherInternalsList = graph.getInternalEdges(nodeI);
+
+            otherInternalsList.add(new Edges(nodeI, node));
+            otherExternalsList.remove(new Edges(nodeI, node));
+        }
+    }
+
+    public void allInternalEdgesNonEmpty() {
+        for (List<Edges> edgesList : internalEdges.values()) {
+            if (edgesList == null || edgesList.isEmpty()) {
+                System.out.println("SĄ PUSTE WIERZCHOŁKI! ");
+            }
+        }
+        System.out.println("NIE MA PUSTYCH WIERZCHOŁKÓW");
+    }
+
+    public void printAllInternalAndExternalEdges() {
+        for (Node node : getNodes()) {
+            printInternalEdges(node);
+            //printExternalEdges(node);
+        }
+    }
+
+
+    public void optimizeMargin(ArrayList<Integer> cardinalityGroups, double aimMargin) {
+        // Zakładamy, że indeksy w cardinalityGroups odpowiadają numerom grup
+        int maxIterations = 50000; // limit to prevent infinite loop
+        int iterations = 0;
+        while (iterations < maxIterations) {
+            int max = Collections.max(cardinalityGroups);
+            int min = Collections.min(cardinalityGroups);
+            if (min == 0) break; // avoid division by zero
+            double margin = (double) max / min;
+            if (margin <= aimMargin) break;
+
+            int maxGroup = cardinalityGroups.indexOf(max);
+            int minGroup = cardinalityGroups.indexOf(min);
+
+            // Pobierz wierzchołek z największej grupy i przenieś do najmniejszej
+            List<Node> fromGroup = groupMap.get(maxGroup);
+            List<Node> toGroup = groupMap.get(minGroup);
+
+            if (fromGroup == null || fromGroup.isEmpty() || toGroup == null || maxGroup == minGroup) break;
+
+            // Znajdź wierzchołek, który nie jest już w grupie docelowej
+            Node nodeToMove = null;
+            for (Node node : fromGroup) {
+                if (node.getGroup() == maxGroup) {
+                    nodeToMove = node;
+                    break;
+                }
+            }
+            if (nodeToMove == null) break;
+
+            nodeToMove.assignGroup(minGroup);
+
+            // Aktualizuj mapy grup
+            fromGroup.remove(nodeToMove);
+            toGroup.add(nodeToMove);
+
+            // Aktualizuj rozmiary grup
+            cardinalityGroups.set(maxGroup, fromGroup.size());
+            cardinalityGroups.set(minGroup, toGroup.size());
+
+            // Synchronizuj krawędzie i grupy
+            updateGroupMap();
+            synchronizeGroupEdges();
+
+            iterations++;
+        }
+    }
+
+    public int getMaxVerticesInLine() {
+        return maxVerticesInLine;
+    }
+
+    public Map<Integer, List<Integer>> getAdjacencyList() {
+        Map<Integer, List<Integer>> adjList = new HashMap<>();
+        for (Node node : graphLayout.keySet()) {
+            int nodeIdx = node.getNodeIndex();
+            List<Integer> neighbors = new ArrayList<>();
+            for (Edges edge : graphLayout.get(node)) {
+                neighbors.add(edge.getDestination().getNodeIndex());
+            }
+            adjList.put(nodeIdx, neighbors);
+        }
+        return adjList;
+    }
 }
+
