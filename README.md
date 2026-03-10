@@ -31,4 +31,10 @@
 3. Użyj przycisku **Podziel graf**, aby otworzyć okno konfiguracji parametrów (liczba części, margines).
 4. Przeglądaj wynik wizualny bezpośrednio w oknie głównym.
 
-## ⚠️ Ogranic
+## ⚠️ Ograniczenia
+- Program zachowuje płynność dla małych i średnich grafów. Przy bardzo dużych strukturach płynność interfejsu może być mniejsza, choć program pozostaje użyteczny dzięki trybowi *Performance*.
+- Optymalizacja marginesu błędu może w specyficznych przypadkach nie osiągnąć założonego celu przy bardzo gęstych grafach.
+
+## 👥 Autorzy
+- **Adam Grochulski**
+- **Przemysław Pindral**
